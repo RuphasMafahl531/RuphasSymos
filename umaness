@@ -1,18 +1,18 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Uma Racing | DELTA SPRINT V21",
-   LoadingTitle = "Menghubungkan ke Tombol Sprint...",
-   LoadingSubtitle = "V21 - Delta Movement",
+   Name = "Uma Racing | SIGNAL HIJACK V22",
+   LoadingTitle = "Menghadang Sinyal Game...",
+   LoadingSubtitle = "V22 - Speed Multiplier",
    ConfigurationSaving = { Enabled = false }
 })
 
-local Tab = Window:CreateTab("Main Hack", 4483362458)
+local Tab = Window:CreateTab("Turbo Sprint", 4483362458)
 
-_G.SprintBoost = 0 -- Power tambahan
+_G.Multiplier = 1 -- 1 adalah normal
 _G.InfStamina = true
 
--- 1. INFINITE STAMINA (Sudah Berhasil)
+-- 1. FIX INFINITE STAMINA (Kunci Utama)
 Tab:CreateToggle({
    Name = "Infinite Stamina",
    CurrentValue = true,
@@ -24,7 +24,7 @@ Tab:CreateToggle({
                local p = game.Players.LocalPlayer
                if p.Character then
                    p.Character:SetAttribute("Stamina", 100)
-                   p.Character:SetAttribute("Sprinting", false) -- Menipu sistem drain
+                   p.Character:SetAttribute("Sprinting", false)
                end
                task.wait()
            end
@@ -32,47 +32,42 @@ Tab:CreateToggle({
    end,
 })
 
--- 2. BOOST POWER (Hanya aktif saat sprint)
+-- 2. SPRINT MULTIPLIER (Melipatgandakan Kecepatan Sprint)
 Tab:CreateSlider({
-   Name = "Sprint Extra Power",
-   Range = {0, 10},
+   Name = "Sprint Multiplier (X)",
+   Range = {1, 10},
    Increment = 0.5,
-   CurrentValue = 0,
-   Flag = "SpeedSlider", 
+   CurrentValue = 1,
+   Flag = "MultSlider", 
    Callback = function(Value)
-       _G.SprintBoost = Value
+       _G.Multiplier = Value
    end,
 })
 
--- FUNGSI PENDETEKSI TOMBOL SPRINT MOBILE & PC
-local UIS = game:GetService("UserInputService")
-local function IsSprinting()
-    local p = game.Players.LocalPlayer
-    local char = p.Character
-    if char then
-        -- Mengecek apakah Shift ditekan ATAU tombol sprint UI game aktif
-        return UIS:IsKeyDown(Enum.KeyCode.LeftShift) or char:GetAttribute("Sprinting") == true or char:GetAttribute("IsSprinting") == true
-    end
-    return false
-end
-
--- LOOP DELTA: Menambahkan kecepatan ke posisi karakter
-game:GetService("RunService").Heartbeat:Connect(function()
-    local p = game.Players.LocalPlayer
-    local char = p.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChild("Humanoid")
-    
-    if root and hum and _G.SprintBoost > 0 then
-        -- HANYA AKTIF JIKA: Karakter bergerak DAN Tombol Sprint Ditekan
-        if hum.MoveDirection.Magnitude > 0 and IsSprinting() then
-            -- Memberikan dorongan instan pada posisi (CFrame)
-            root.CFrame = root.CFrame + (hum.MoveDirection * (_G.SprintBoost / 4))
+-- RAHAASIA V22: Mendeteksi Perubahan Speed dari Game
+local player = game.Players.LocalPlayer
+task.spawn(function()
+    while true do
+        local char = player.Character
+        local hum = char and char:FindFirstChild("Humanoid")
+        
+        if hum then
+            -- Kita pantau perubahan WalkSpeed secara real-time
+            hum:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+                -- LOGIKA: Game biasanya set speed jalan = 16, lari = 25-30.
+                -- Jika game set speed di atas 20, berarti pemain sedang SPRINT.
+                if hum.WalkSpeed > 20 and hum.WalkSpeed < 500 then
+                    -- Kita lipatgandakan hanya saat status sprint aktif dari game
+                    hum.WalkSpeed = hum.WalkSpeed * _G.Multiplier
+                end
+            end)
         end
+        player.CharacterAdded:Wait()
+        task.wait(1)
     end
 end)
 
--- 3. FITUR LENGKAP LAINNYA
+-- 3. FITUR PELENGKAP
 Tab:CreateToggle({
    Name = "Anti Hit Wall",
    CurrentValue = false,
@@ -102,7 +97,7 @@ Tab:CreateButton({
 })
 
 Rayfield:Notify({
-   Title = "V21 Delta Active!",
-   Content = "Boost hanya aktif saat kamu menekan tombol sprint!",
+   Title = "V22 Injected!",
+   Content = "Multiplier hanya aktif saat skrip game memicu mode lari.",
    Duration = 5,
 })
