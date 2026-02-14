@@ -1,73 +1,84 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Uma Racing | SIGNAL HIJACK V22",
-   LoadingTitle = "Menghadang Sinyal Game...",
-   LoadingSubtitle = "V22 - Speed Multiplier",
+   Name = "Uma Racing | ENGINE HIJACK V23",
+   LoadingTitle = "Menembus Proteksi Engine...",
+   LoadingSubtitle = "V23 - Metatable Overdrive",
    ConfigurationSaving = { Enabled = false }
 })
 
-local Tab = Window:CreateTab("Turbo Sprint", 4483362458)
+local Tab = Window:CreateTab("Main Settings", 4483362458)
 
-_G.Multiplier = 1 -- 1 adalah normal
-_G.InfStamina = true
+_G.CustomSpeed = 100 -- Angka speed saat sprint
+_G.InfStam = true
 
--- 1. FIX INFINITE STAMINA (Kunci Utama)
+-- 1. HARD-LOCK STAMINA (Metode Baru: NewIndex Hook)
+-- Metode ini akan memblokir SEMUA upaya game untuk menurunkan stamina
+local mt = getrawmetatable(game)
+local oldNewIndex = mt.__newindex
+setreadonly(mt, false)
+
+mt.__newindex = newcclosure(function(t, k, v)
+    if _G.InfStam and (k == "Stamina" or k == "Energy") then
+        return oldNewIndex(t, k, 100) -- Apapun yang terjadi, paksa tetap 100
+    end
+    return oldNewIndex(t, k, v)
+end)
+setreadonly(mt, true)
+
 Tab:CreateToggle({
-   Name = "Infinite Stamina",
+   Name = "Infinite Stamina (Anti-Reset)",
    CurrentValue = true,
    Flag = "StamToggle",
    Callback = function(Value)
-       _G.InfStamina = Value
-       task.spawn(function()
-           while _G.InfStamina do
-               local p = game.Players.LocalPlayer
-               if p.Character then
-                   p.Character:SetAttribute("Stamina", 100)
-                   p.Character:SetAttribute("Sprinting", false)
-               end
-               task.wait()
-           end
-       end)
+       _G.InfStam = Value
    end,
 })
 
--- 2. SPRINT MULTIPLIER (Melipatgandakan Kecepatan Sprint)
+-- 2. SPRINT-ONLY SPEED BOOST
 Tab:CreateSlider({
-   Name = "Sprint Multiplier (X)",
-   Range = {1, 10},
-   Increment = 0.5,
-   CurrentValue = 1,
-   Flag = "MultSlider", 
+   Name = "Kecepatan Saat Sprint",
+   Range = {16, 500},
+   Increment = 1,
+   CurrentValue = 100,
+   Flag = "SpeedSlider", 
    Callback = function(Value)
-       _G.Multiplier = Value
+       _G.CustomSpeed = Value
    end,
 })
 
--- RAHAASIA V22: Mendeteksi Perubahan Speed dari Game
-local player = game.Players.LocalPlayer
-task.spawn(function()
-    while true do
-        local char = player.Character
-        local hum = char and char:FindFirstChild("Humanoid")
-        
-        if hum then
-            -- Kita pantau perubahan WalkSpeed secara real-time
-            hum:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-                -- LOGIKA: Game biasanya set speed jalan = 16, lari = 25-30.
-                -- Jika game set speed di atas 20, berarti pemain sedang SPRINT.
-                if hum.WalkSpeed > 20 and hum.WalkSpeed < 500 then
-                    -- Kita lipatgandakan hanya saat status sprint aktif dari game
-                    hum.WalkSpeed = hum.WalkSpeed * _G.Multiplier
-                end
-            end)
+-- LOGIKA: Memantau status sprint secara mendalam
+game:GetService("RunService").RenderStepped:Connect(function()
+    local p = game.Players.LocalPlayer
+    local char = p.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    
+    if hum then
+        -- Cek apakah game sedang mengaktifkan mode lari (biasanya speed > 20)
+        -- ATAU mengecek animasi lari
+        local isGameSprinting = false
+        for _, track in pairs(hum:GetPlayingAnimationTracks()) do
+            if track.Name:lower():find("run") or track.Name:lower():find("sprint") then
+                isGameSprinting = true
+                break
+            end
         end
-        player.CharacterAdded:Wait()
-        task.wait(1)
+
+        if isGameSprinting and hum.MoveDirection.Magnitude > 0 then
+            -- PAKSA SPEED TINGGI HANYA SAAT SPRINT
+            hum.WalkSpeed = _G.CustomSpeed
+            -- PAKSA STAMINA LAGI VIA ATTRIBUTE (Double Lock)
+            char:SetAttribute("Stamina", 100)
+        else
+            -- JALAN BIASA
+            if hum.WalkSpeed > 50 then -- Jika speed kegedean gara-gara cheat, balikin ke normal
+                hum.WalkSpeed = 16
+            end
+        end
     end
 end)
 
--- 3. FITUR PELENGKAP
+-- 3. FITUR PELENGKAP (Sesuai Permintaan)
 Tab:CreateToggle({
    Name = "Anti Hit Wall",
    CurrentValue = false,
@@ -97,7 +108,7 @@ Tab:CreateButton({
 })
 
 Rayfield:Notify({
-   Title = "V22 Injected!",
-   Content = "Multiplier hanya aktif saat skrip game memicu mode lari.",
+   Title = "V23 Injected!",
+   Content = "Stamina dikunci via Metatable. Speed hanya aktif saat sprint!",
    Duration = 5,
 })
