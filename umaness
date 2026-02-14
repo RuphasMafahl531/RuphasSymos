@@ -1,19 +1,18 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Uma Racing | SPRINT LOCK V19",
-   LoadingTitle = "Sinkronisasi Tombol Sprint...",
-   LoadingSubtitle = "V19 - Focus Sprint Only",
+   Name = "Uma Racing | DELTA SPRINT V21",
+   LoadingTitle = "Menghubungkan ke Tombol Sprint...",
+   LoadingSubtitle = "V21 - Delta Movement",
    ConfigurationSaving = { Enabled = false }
 })
 
-local Tab = Window:CreateTab("Turbo Sprint", 4483362458)
+local Tab = Window:CreateTab("Main Hack", 4483362458)
 
-_G.SprintSpeed = 16
+_G.SprintBoost = 0 -- Power tambahan
 _G.InfStamina = true
-local isSprinting = false
 
--- 1. FIX INFINITE STAMINA (Kunci Utama)
+-- 1. INFINITE STAMINA (Sudah Berhasil)
 Tab:CreateToggle({
    Name = "Infinite Stamina",
    CurrentValue = true,
@@ -25,7 +24,7 @@ Tab:CreateToggle({
                local p = game.Players.LocalPlayer
                if p.Character then
                    p.Character:SetAttribute("Stamina", 100)
-                   p.Character:SetAttribute("Energy", 100)
+                   p.Character:SetAttribute("Sprinting", false) -- Menipu sistem drain
                end
                task.wait()
            end
@@ -33,52 +32,47 @@ Tab:CreateToggle({
    end,
 })
 
--- 2. SPEED SETTING (Hanya untuk Sprint)
+-- 2. BOOST POWER (Hanya aktif saat sprint)
 Tab:CreateSlider({
-   Name = "Kecepatan Saat Sprint",
-   Range = {16, 500},
-   Increment = 1,
-   CurrentValue = 16,
+   Name = "Sprint Extra Power",
+   Range = {0, 10},
+   Increment = 0.5,
+   CurrentValue = 0,
    Flag = "SpeedSlider", 
    Callback = function(Value)
-       _G.SprintSpeed = Value
+       _G.SprintBoost = Value
    end,
 })
 
--- 3. PENDETEKSI TOMBOL SPRINT (LEBIH AKURAT)
+-- FUNGSI PENDETEKSI TOMBOL SPRINT MOBILE & PC
 local UIS = game:GetService("UserInputService")
-
--- Fungsi untuk cek apakah pemain sedang menekan tombol sprint
-local function checkSprint()
-    -- Cek Shift Kiri (PC) atau Tombol Sprint di layar (Mobile)
-    -- Kita juga mengecek apakah karakter memiliki atribut Sprinting dari game
+local function IsSprinting()
     local p = game.Players.LocalPlayer
     local char = p.Character
     if char then
-        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) or char:GetAttribute("Sprinting") == true or char:GetAttribute("IsSprinting") == true then
-            return true
-        end
+        -- Mengecek apakah Shift ditekan ATAU tombol sprint UI game aktif
+        return UIS:IsKeyDown(Enum.KeyCode.LeftShift) or char:GetAttribute("Sprinting") == true or char:GetAttribute("IsSprinting") == true
     end
     return false
 end
 
--- LOOP UTAMA: MEMAKSA SPEED HANYA SAAT SPRINT
-game:GetService("RunService").RenderStepped:Connect(function()
+-- LOOP DELTA: Menambahkan kecepatan ke posisi karakter
+game:GetService("RunService").Heartbeat:Connect(function()
     local p = game.Players.LocalPlayer
-    local hum = p.Character and p.Character:FindFirstChild("Humanoid")
+    local char = p.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
     
-    if hum then
-        if checkSprint() and hum.MoveDirection.Magnitude > 0 then
-            -- JIKA SEDANG SPRINT: Gunakan Speed dari Slider
-            hum.WalkSpeed = _G.SprintSpeed
-        else
-            -- JIKA JALAN BIASA: Kecepatan Normal (16)
-            hum.WalkSpeed = 16
+    if root and hum and _G.SprintBoost > 0 then
+        -- HANYA AKTIF JIKA: Karakter bergerak DAN Tombol Sprint Ditekan
+        if hum.MoveDirection.Magnitude > 0 and IsSprinting() then
+            -- Memberikan dorongan instan pada posisi (CFrame)
+            root.CFrame = root.CFrame + (hum.MoveDirection * (_G.SprintBoost / 4))
         end
     end
 end)
 
--- 4. FITUR TAMBAHAN LENGKAP
+-- 3. FITUR LENGKAP LAINNYA
 Tab:CreateToggle({
    Name = "Anti Hit Wall",
    CurrentValue = false,
@@ -91,14 +85,6 @@ Tab:CreateToggle({
                end
            end
        end)
-   end,
-})
-
-Tab:CreateToggle({
-   Name = "Auto Run",
-   CurrentValue = false,
-   Callback = function(Value)
-       _G.AutoRun = Value
    end,
 })
 
@@ -116,7 +102,7 @@ Tab:CreateButton({
 })
 
 Rayfield:Notify({
-   Title = "V19 Ready!",
-   Content = "Kecepatan tinggi hanya akan aktif jika kamu menekan tombol sprint.",
+   Title = "V21 Delta Active!",
+   Content = "Boost hanya aktif saat kamu menekan tombol sprint!",
    Duration = 5,
 })
