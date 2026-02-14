@@ -1,0 +1,122 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Uma Racing | SPRINT LOCK V19",
+   LoadingTitle = "Sinkronisasi Tombol Sprint...",
+   LoadingSubtitle = "V19 - Focus Sprint Only",
+   ConfigurationSaving = { Enabled = false }
+})
+
+local Tab = Window:CreateTab("Turbo Sprint", 4483362458)
+
+_G.SprintSpeed = 16
+_G.InfStamina = true
+local isSprinting = false
+
+-- 1. FIX INFINITE STAMINA (Kunci Utama)
+Tab:CreateToggle({
+   Name = "Infinite Stamina",
+   CurrentValue = true,
+   Flag = "StamToggle",
+   Callback = function(Value)
+       _G.InfStamina = Value
+       task.spawn(function()
+           while _G.InfStamina do
+               local p = game.Players.LocalPlayer
+               if p.Character then
+                   p.Character:SetAttribute("Stamina", 100)
+                   p.Character:SetAttribute("Energy", 100)
+               end
+               task.wait()
+           end
+       end)
+   end,
+})
+
+-- 2. SPEED SETTING (Hanya untuk Sprint)
+Tab:CreateSlider({
+   Name = "Kecepatan Saat Sprint",
+   Range = {16, 500},
+   Increment = 1,
+   CurrentValue = 16,
+   Flag = "SpeedSlider", 
+   Callback = function(Value)
+       _G.SprintSpeed = Value
+   end,
+})
+
+-- 3. PENDETEKSI TOMBOL SPRINT (LEBIH AKURAT)
+local UIS = game:GetService("UserInputService")
+
+-- Fungsi untuk cek apakah pemain sedang menekan tombol sprint
+local function checkSprint()
+    -- Cek Shift Kiri (PC) atau Tombol Sprint di layar (Mobile)
+    -- Kita juga mengecek apakah karakter memiliki atribut Sprinting dari game
+    local p = game.Players.LocalPlayer
+    local char = p.Character
+    if char then
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) or char:GetAttribute("Sprinting") == true or char:GetAttribute("IsSprinting") == true then
+            return true
+        end
+    end
+    return false
+end
+
+-- LOOP UTAMA: MEMAKSA SPEED HANYA SAAT SPRINT
+game:GetService("RunService").RenderStepped:Connect(function()
+    local p = game.Players.LocalPlayer
+    local hum = p.Character and p.Character:FindFirstChild("Humanoid")
+    
+    if hum then
+        if checkSprint() and hum.MoveDirection.Magnitude > 0 then
+            -- JIKA SEDANG SPRINT: Gunakan Speed dari Slider
+            hum.WalkSpeed = _G.SprintSpeed
+        else
+            -- JIKA JALAN BIASA: Kecepatan Normal (16)
+            hum.WalkSpeed = 16
+        end
+    end
+end)
+
+-- 4. FITUR TAMBAHAN LENGKAP
+Tab:CreateToggle({
+   Name = "Anti Hit Wall",
+   CurrentValue = false,
+   Callback = function(Value)
+       _G.AntiHit = Value
+       game:GetService("RunService").Stepped:Connect(function()
+           if _G.AntiHit and game.Players.LocalPlayer.Character then
+               for _, v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+                   if v:IsA("BasePart") then v.CanCollide = false end
+               end
+           end
+       end)
+   end,
+})
+
+Tab:CreateToggle({
+   Name = "Auto Run",
+   CurrentValue = false,
+   Callback = function(Value)
+       _G.AutoRun = Value
+   end,
+})
+
+Tab:CreateButton({
+   Name = "ESP & Instant Camera",
+   Callback = function()
+       for _, v in pairs(game.Players:GetPlayers()) do
+           if v ~= game.Players.LocalPlayer and v.Character then
+               local h = Instance.new("Highlight", v.Character)
+               h.FillColor = Color3.fromRGB(255, 0, 0)
+           end
+       end
+       workspace.CurrentCamera.FieldOfView = 120
+   end,
+})
+
+Rayfield:Notify({
+   Title = "V19 Ready!",
+   Content = "Kecepatan tinggi hanya akan aktif jika kamu menekan tombol sprint.",
+   Duration = 5,
+})
